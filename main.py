@@ -1,9 +1,4 @@
-import sys
-import os
 import tkinter as tk
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from clinicflow import managers as ma
 
 BG = "#1e1e1e"
