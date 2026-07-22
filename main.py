@@ -19,7 +19,7 @@ def scale_factor(window):
 
 
 def make_label(parent, text, size, bold=False, **kwargs):
-    # bg and fg are always hardcoded to n_background / n_foreground.
+    # bg and fg are always hardcoded to n_background / n_foreground. No light mode, no overrides.
     weight = "bold" if bold else "normal"
     bg = kwargs.pop("bg", n_background)
     fg = kwargs.pop("fg", n_foreground)
@@ -267,8 +267,10 @@ def run_main():
         "6.  View Patient Appointments",
         "7.  View Doctor Schedule",
         "8.  Search Patient By Name",
-        "9.  Wipe Database",
-        "10. Exit",
+        "9.  Delete Patient by Patient ID",
+        "10. Delete Doctor by Doctor ID",
+        "11. Wipe Database",
+        "12. Exit",
     ]
 
     container = tk.Frame(window, bg=n_background)
@@ -338,6 +340,7 @@ def run_main():
             show_status("Error: Please enter a valid choice number.")
             return
 
+        # Calls the pm.add_patient() func to register the patient
         match choice:
             case 1:
                 form = make_form(window, "Register Patient", 450, 360)
@@ -392,6 +395,7 @@ def run_main():
                     row=5, column=0, columnspan=2, pady=16
                 )
 
+            # Calls the dm.add_doctor() func to register the doctor also d here is short for doctor
             case 2:
                 d_form = make_form(window, "Register Doctor", 480, 420)
 
@@ -411,7 +415,7 @@ def run_main():
 
                 def submit_doctor():
                     try:
-                        name_val = d_name_entry.get().strip()
+                        name_val = d_name_entry.get().strip()  # val is shart for value
                         age_val = int(d_age_entry.get().strip())
                         contact_val = int(d_contact_entry.get().strip())
                         id_val = d_id_entry.get().strip()
@@ -421,7 +425,8 @@ def run_main():
                             day.strip()
                             for day in d_available_days_entry.get().split(",")
                             if day.strip()
-                        ]
+                        ]  # Runs a list comprehension with all whitespaces(at the start and end) of each day stripped(by .strip())
+                        # for the day in the entry(it's split by commas which is why the input says to write it comma-seperated)
 
                         dm.add_doctor(
                             name=name_val,
@@ -442,6 +447,7 @@ def run_main():
                     row=6, column=0, columnspan=2, pady=16
                 )
 
+            # Calls am.book_appointment() simple enough
             case 3:
                 app_form = make_form(window, "Book Appointment", 450, 280)
 
@@ -471,6 +477,7 @@ def run_main():
                     button_font_size,
                 ).grid(row=3, column=0, columnspan=2, pady=16)
 
+            # Cancels the appointment. Once again, am.cancel_appointment()
             case 4:
                 del_app_form = make_form(window, "Cancel Appointment", 400, 200)
 
@@ -492,6 +499,7 @@ def run_main():
                     button_font_size,
                 ).grid(row=1, column=0, columnspan=2, pady=16)
 
+            # Calls am.complete_appointment() to show that the appointment has been completed
             case 5:
                 comp_app = make_form(window, "Complete Appointment", 400, 200)
 
@@ -513,6 +521,7 @@ def run_main():
                     button_font_size,
                 ).grid(row=1, column=0, columnspan=2, pady=16)
 
+            # Used for viewing all the appointments of the specific patient using am.get_patient_appointments()
             case 6:
                 patient_name_form = make_form(
                     window, "View Patient Appointments", 420, 200
@@ -538,14 +547,15 @@ def run_main():
                     button_font_size,
                 ).grid(row=1, column=0, columnspan=2, pady=16)
 
+            # Gets the schedule of the doctor by calling am.get_doctor_schedule()
             case 7:
-                d_sch_form = make_form(window, "Doctor Schedule", 440, 240)
+                d_schedule_form = make_form(window, "Doctor Schedule", 440, 240)
 
                 doctor_id_entry = add_form_field(
-                    d_sch_form, "Doctor ID:", 0, input_font_size
+                    d_schedule_form, "Doctor ID:", 0, input_font_size
                 )
                 date_needed_entry = add_form_field(
-                    d_sch_form, "Date (YYYY-MM-DD):", 1, input_font_size
+                    d_schedule_form, "Date (YYYY-MM-DD):", 1, input_font_size
                 )
 
                 def submit_view_schedule():
@@ -556,15 +566,16 @@ def run_main():
                     for r in results:
                         print(r)
                     show_status(f"Fetched schedule with {len(results)} items.", ok=True)
-                    d_sch_form.destroy()
+                    d_schedule_form.destroy()
 
                 make_button(
-                    d_sch_form,
+                    d_schedule_form,
                     "Fetch Schedule",
                     submit_view_schedule,
                     button_font_size,
                 ).grid(row=2, column=0, columnspan=2, pady=16)
 
+            # Searchs for the patient by name
             case 8:
                 p_name_form = make_form(window, "Search Patient", 420, 200)
 
@@ -586,7 +597,67 @@ def run_main():
                     button_font_size,
                 ).grid(row=1, column=0, columnspan=2, pady=16)
 
+            # Deletes the patient by calling pm.remove_patient()
             case 9:
+                patient_removal_form = make_form(window, "Delete Patient", 420, 200)
+
+                make_label(
+                    patient_removal_form, "Enter Patient ID:", label_font_size
+                ).pack(pady=(20, 5))
+                patient_id_entry = make_entry(
+                    patient_removal_form, input_font_size, width=20
+                )
+                patient_id_entry.pack(pady=(0, 15))
+
+                def submit_remove_patient():
+                    p_id = patient_id_entry.get().strip()
+                    if pm.remove_patient(p_id):
+                        print(f"Patient {p_id} successfully removed.")
+                        show_status(f"Patient {p_id} successfully removed.", ok=True)
+                    else:
+                        print(f"Patient with ID {p_id} not found.")
+                        show_status(f"Patient with ID {p_id} not found.")
+                    patient_removal_form.destroy()
+
+                make_button(
+                    patient_removal_form,
+                    "Delete Patient",
+                    submit_remove_patient,
+                    button_font_size,
+                ).pack(pady=10)
+
+            # Deletes the doctor by calling dm.remove_doctor() also d is short for doctor
+            case 10:
+                d_removal_form = make_form(window, "Delete Doctor", 420, 200)
+
+                make_label(d_removal_form, "Enter Doctor ID:", label_font_size).pack(
+                    pady=(20, 5)
+                )
+                d_id_entry = make_entry(d_removal_form, input_font_size, width=20)
+                d_id_entry.pack(pady=(0, 15))
+
+                def submit_remove_doctor():
+                    d_id = d_id_entry.get().strip()
+                    if dm.remove_doctor(d_id):
+                        print(f"Doctor with ID {d_id} successfully removed.")
+                        show_status(
+                            f"Doctor with ID {d_id} successfully removed.",
+                            ok=True,
+                        )
+                    else:
+                        print(f"Doctor with ID {d_id} not found.")
+                        show_status(f"Doctor with ID {d_id} not found.")
+                    d_removal_form.destroy()
+
+                make_button(
+                    d_removal_form,
+                    "Delete Doctor",
+                    submit_remove_doctor,
+                    button_font_size,
+                ).pack(pady=10)
+
+            # The func to wipe databases
+            case 11:
                 confirm_form = make_form(window, "Wipe Options", 520, 260)
 
                 make_label(
@@ -615,6 +686,7 @@ def run_main():
                     show_status("Appointments database wiped.", ok=True)
                     confirm_form.destroy()
 
+                # Does not use button func because the bg and fg used here is different
                 tk.Button(
                     btn_frame,
                     text="Wipe Patients",
@@ -663,11 +735,11 @@ def run_main():
                     cursor="hand2",
                 ).pack(side="left", padx=5)
 
-            case 10:
+            case 12:
                 window.destroy()
 
             case _:
-                show_status("Error: Please enter a number between 1 and 10.")
+                show_status("Error: Please enter a number from 1 to 12.")
 
     sub_btn = make_button(container, "Submit Choice", handle_choice, button_font_size)
     sub_btn.pack(pady=(0, 10))
