@@ -28,11 +28,19 @@ complete beginner, so don't expect anything fancy.
 - View a patient's appointments or a doctor's schedule
 - Search for patients by name
 - Data persists to JSON files in `data/`
+- Do a total database wipe
+- Do login 
 
 ## What it CAN'T do
-- Do a total database wipe
-- Do login (I think it should be there for a database wipe since you can't 
-  just allow anyone to wipe it all)
+- ~~Do a total database wipe~~ (Added in latest commit)
+- ~~Do login (I think it should be there for a database wipe since you can't 
+  just allow anyone to wipe it all)~~ (Added in latest commit)
+- No multi-user accounts
+- No  forgot password
+- No way to remove a single patient or doctor (They exist in managers I just need to put it in main.py)
+- No editing existing record
+- No view all
+- No appointment rescheduling
 
 These will be added in the next commit.
 
