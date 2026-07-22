@@ -65,6 +65,10 @@ class PatientManager:
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Failed to read database file due to format issues: {e}")
 
+    def wipe(self):
+        self.__patient_dict.clear()
+        self.save_to_json()
+
 
 class DoctorManager:
     def __init__(self):
@@ -121,6 +125,10 @@ class DoctorManager:
             print(f"Database loaded. {len(self.doctor_dict)} doctor profiles active.")
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Failed to read database file due to format issues: {e}")
+
+    def wipe(self):
+        self.__doctor_dict.clear()
+        self.save_to_json()
 
 
 class AppointmentManager:
@@ -252,3 +260,7 @@ class AppointmentManager:
             )
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Failed to read database file due to format issues: {e}")
+
+    def wipe(self):
+        self.__appointments.clear()
+        self.save_to_json()
