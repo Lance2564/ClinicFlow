@@ -23,25 +23,20 @@ complete beginner, so don't expect anything fancy.
 
 
 ## What it CAN do
-- Register patients / doctors
+- Register / delete patients and doctors
 - Book, cancel, and complete appointments
 - View a patient's appointments or a doctor's schedule
 - Search for patients by name
+- Login, and wipe patients, doctors, or appointments individually
 - Data persists to JSON files in `data/`
-- - Wipe patients, doctors, or appointments individually (after logging in)
-- Do login 
 
 ## What it CAN'T do
-- ~~Do a total database wipe~~ (Added, check commmits for more info)
-- ~~Do login (I think it should be there for a database wipe since you can't 
-  just allow anyone to wipe it all)~~ (Added, check commits for more info)
 - No multi-user accounts
-- No  forgot password
-- ~~No way to remove a single patient or doctor (They exist in managers I just need to put it in main.py)~~ (Added, check commits for more info)
-- No editing existing record
-- No view all
+- No forgot password
+- No editing existing records
+- No "view all" listing
 - No appointment rescheduling
 
-These will be added in the next commit.
+-These will be added in the next commit.
 
 
