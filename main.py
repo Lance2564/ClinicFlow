@@ -1,17 +1,14 @@
+import json
+import os
 import tkinter as tk
+
+# Imports the managers from the clinicflow folder you just downloaded and also since models is imported inside managers you don't need to worry about it
 from clinicflow import managers as ma
 
-BG = "#1e1e1e"
-PANEL_BG = "#2a2a2a"
-FG = "#e0e0e0"
-MUTED_FG = "#9a9a9a"
-ACCENT = "#4da3ff"
-
-BASE_MENU_FONT_SIZE = 22
-BASE_LABEL_FONT_SIZE = 15
-BASE_INPUT_FONT_SIZE = 18
-BASE_BUTTON_FONT_SIZE = 16
-BASE_TITLE_FONT_SIZE = 30
+login_path = "data/login.json"
+n_background = "#1e1e1e"  # Main background color (Dark theme because light mode is a crime to humanity)
+n_foreground = "#e0e0e0"  # Standard text/font color
+n_accent = "#4da3ff"  # Accent primary button color (Light Blue)
 
 
 def scale_factor(window):
@@ -21,14 +18,18 @@ def scale_factor(window):
     return max(0.75, min(factor, 1.75))
 
 
-def make_label(parent, text, size, bold=False, muted=False, **kwargs):
+def make_label(parent, text, size, bold=False, **kwargs):
+    # bg and fg are always hardcoded to n_background / n_foreground.
     weight = "bold" if bold else "normal"
+    bg = kwargs.pop("bg", n_background)
+    fg = kwargs.pop("fg", n_foreground)
+
     return tk.Label(
         parent,
         text=text,
         font=("Helvetica", size, weight),
-        bg=kwargs.pop("bg", PANEL_BG if isinstance(parent, tk.Toplevel) else BG),
-        fg=MUTED_FG if muted else FG,
+        bg=bg,
+        fg=fg,
         **kwargs,
     )
 
@@ -36,11 +37,11 @@ def make_label(parent, text, size, bold=False, muted=False, **kwargs):
 def make_entry(parent, font_size, width=28):
     return tk.Entry(
         parent,
-        bg="#333333",
-        fg="white",
+        bg=n_background,
+        fg=n_foreground,
         insertbackground="white",
         font=("Helvetica", font_size),
-        justify="center",
+        justify="left",
         width=width,
         relief="flat",
         highlightthickness=1,
@@ -54,7 +55,7 @@ def make_button(parent, text, command, font_size):
         text=text,
         command=command,
         font=("Helvetica", font_size, "bold"),
-        bg=ACCENT,
+        bg=n_accent,
         fg="#1e1e1e",
         activebackground="#3d82cc",
         activeforeground="white",
@@ -68,8 +69,8 @@ def make_button(parent, text, command, font_size):
 def make_form(root, title, width, height):
     form = tk.Toplevel(root)
     form.title(title)
-    form.config(bg=PANEL_BG)
-    form.grab_set()
+    form.config(bg=n_background)
+    form.grab_set()  # Prevents interacting with main window while open
     form.resizable(False, False)
 
     root.update_idletasks()
@@ -89,22 +90,173 @@ def add_form_field(form, label_text, row, font_size, width=28):
     return entry
 
 
+def blank_login():
+    if not os.path.exists(login_path) or os.path.getsize(login_path) == 0:
+        return True
+
+    with open(login_path, "r") as f:
+        try:
+            data = json.load(f)
+        except json.JSONDecodeError:
+            return True
+
+    return not data.get("username") or not data.get("password")
+
+
+def auth_screen():
+    window = tk.Tk()
+    window.title("ClinicFlow - Authentication")
+    window.config(bg=n_background)
+    window.geometry("1200x800")
+
+    sf = scale_factor(window)
+    label_font_size = round(15 * sf)
+    input_font_size = round(18 * sf)
+    button_font_size = round(16 * sf)
+    title_font_size = round(30 * sf)
+
+    container = tk.Frame(window, bg=n_background)
+    container.place(relx=0.5, rely=0.5, anchor="center")
+
+    def build_signup_form():
+        for w in container.winfo_children():
+            w.destroy()
+
+        make_label(container, "Create Account", title_font_size, bold=True).pack(
+            pady=(0, 20)
+        )
+
+        make_label(container, "Username:", label_font_size).pack()
+        username_entry = make_entry(container, input_font_size, width=25)
+        username_entry.pack(pady=(0, 10))
+
+        make_label(container, "Password:", label_font_size).pack()
+        password_entry = make_entry(container, input_font_size, width=25)
+        password_entry.config(show="*")
+        password_entry.pack(pady=(0, 10))
+
+        status_label = make_label(container, "", label_font_size)
+
+        def put_login_in_json():
+            u = username_entry.get().strip()
+            p = password_entry.get().strip()
+            if not u or not p:
+                status_label.config(text="Username and password can't be empty.")
+                status_label.pack(pady=(5, 5))
+                return
+
+            os.makedirs(os.path.dirname(login_path), exist_ok=True)
+            with open(login_path, "w") as f:
+                json.dump({"username": u, "password": p}, f, indent=4)
+
+            window.destroy()
+            run_main()
+
+        def no_sign():
+            for w in container.winfo_children():
+                w.destroy()
+
+            make_label(
+                container,
+                "Are you sure? Your data will not be saved.",
+                label_font_size,
+                wraplength=500,
+                justify="center",
+            ).pack(pady=(0, 20))
+
+            def proceed_without_login():
+                window.destroy()
+                run_main()
+
+            make_button(
+                container,
+                "Yes, I am sure",
+                proceed_without_login,
+                button_font_size,
+            ).pack(pady=8)
+            make_button(
+                container,
+                "No thanks, take me back",
+                build_signup_form,
+                button_font_size,
+            ).pack(pady=8)
+
+        make_button(container, "Submit", put_login_in_json, button_font_size).pack(
+            pady=10
+        )
+        make_button(
+            container, "Continue without login", no_sign, button_font_size
+        ).pack(pady=6)
+
+    def build_login_form():
+        with open(login_path, "r") as f:
+            stored = json.load(f)
+
+        make_label(
+            parent=container, text="Login", size=title_font_size, bold=True
+        ).pack(pady=(0, 20))
+
+        make_label(parent=container, text="Username:", size=label_font_size).pack()
+        username_entry = make_entry(container, input_font_size, width=25)
+        username_entry.pack(pady=(0, 10))
+
+        make_label(parent=container, text="Password:", size=label_font_size).pack()
+        password_entry = make_entry(
+            parent=container, font_size=input_font_size, width=25
+        )
+        password_entry.config(show="*")
+        password_entry.pack(pady=(0, 10))
+
+        status_label = make_label(parent=container, text="", size=label_font_size)
+
+        def try_login():
+            u = username_entry.get().strip()
+            p = password_entry.get().strip()
+
+            if u == stored.get("username") and p == stored.get("password"):
+                window.destroy()
+                run_main()
+            elif u == stored.get("username") and p != stored.get("password"):
+                status_label.config(text="Wrong password!")
+                status_label.pack(pady=(5, 5))
+            elif u != stored.get("username") and p == stored.get("password"):
+                status_label.config(text="Wrong username!")
+                status_label.pack(pady=(5, 5))
+            else:
+                status_label.config(text="Wrong username and password!")
+                status_label.pack(pady=(5, 5))
+
+        make_button(
+            parent=container,
+            text="Submit",
+            command=try_login,
+            font_size=button_font_size,
+        ).pack(pady=10)
+
+    if blank_login():
+        build_signup_form()
+    else:
+        build_login_form()
+
+    window.mainloop()
+
+
 def run_main():
     pm = ma.PatientManager()
     dm = ma.DoctorManager()
     am = ma.AppointmentManager(pm, dm)
 
     window = tk.Tk()
-    window.title("ClinicFlow")
-    window.config(bg=BG)
-    window.geometry("1200x1300")
+    window.title("ClinicFlow - Dashboard")
+    window.config(bg=n_background)
+    window.geometry("1200x900")
 
     sf = scale_factor(window)
-    menu_font_size = round(BASE_MENU_FONT_SIZE * sf)
-    label_font_size = round(BASE_LABEL_FONT_SIZE * sf)
-    input_font_size = round(BASE_INPUT_FONT_SIZE * sf)
-    button_font_size = round(BASE_BUTTON_FONT_SIZE * sf)
-    title_font_size = round(BASE_TITLE_FONT_SIZE * sf)
+    menu_font_size = round(16 * sf)
+    label_font_size = round(14 * sf)
+    input_font_size = round(16 * sf)
+    button_font_size = round(14 * sf)
+    title_font_size = round(26 * sf)
 
     menu_items = [
         "1.  Register A Patient",
@@ -115,299 +267,414 @@ def run_main():
         "6.  View Patient Appointments",
         "7.  View Doctor Schedule",
         "8.  Search Patient By Name",
-        "9.  Exit",
+        "9.  Wipe Database",
+        "10. Exit",
     ]
 
-    container = tk.Frame(window, bg=BG)
+    container = tk.Frame(window, bg=n_background)
     container.place(relx=0.5, rely=0.5, anchor="center")
 
-    tk.Label(
+    make_label(
         container,
-        text="ClinicFlow",
-        font=("Helvetica", title_font_size, "bold"),
-        bg=BG,
-        fg=ACCENT,
+        "ClinicFlow",
+        title_font_size,
+        bold=True,
+        fg=n_accent,
     ).pack(pady=(0, 10))
 
-    tk.Label(
+    make_label(
         container,
-        text="What would you like to do?",
-        font=("Helvetica", label_font_size + 2, "bold"),
-        bg=BG,
-        fg=FG,
-    ).pack(pady=(0, 20))
+        "What would you like to do?",
+        label_font_size + 2,
+        bold=True,
+    ).pack(pady=(0, 15))
 
-    menu_frame = tk.Frame(container, bg=BG)
-    menu_frame.pack(pady=(0, 30))
+    menu_frame = tk.Frame(container, bg=n_background)
+    menu_frame.pack(pady=(0, 20))
 
     for item in menu_items:
-        tk.Label(
+        make_label(
             menu_frame,
-            text=item,
-            font=("Helvetica", menu_font_size),
-            bg=BG,
-            fg=FG,
+            item,
+            menu_font_size,
             anchor="w",
             justify="left",
-        ).pack(fill="x", pady=4)
+        ).pack(fill="x", pady=2)
 
-    input_label = tk.Label(
+    make_label(
         container,
-        text="Enter your choice number below:",
-        font=("Helvetica", input_font_size),
-        bg=BG,
-        fg=MUTED_FG,
-    )
-    input_label.pack(pady=(10, 8))
+        "Enter your choice number below:",
+        input_font_size,
+    ).pack(pady=(10, 5))
 
-    choice_input = tk.IntVar()
-    input_entry = make_entry(container, input_font_size, width=10)
-    input_entry.config(textvariable=choice_input)
-    input_entry.pack(pady=(0, 20))
+    input_entry = tk.Entry(
+        container,
+        font=("Helvetica", input_font_size, "bold"),
+        width=10,
+        justify="center",
+        bg=n_background,
+        fg=n_foreground,
+    )
+    input_entry.pack(pady=(0, 15))
     input_entry.focus_set()
 
-    status_label = tk.Label(
+    status_label = make_label(
         container,
-        text="",
-        font=("Helvetica", label_font_size),
-        bg=BG,
+        "",
+        label_font_size,
         fg="#ff8080",
         wraplength=600,
         justify="center",
     )
 
-    def show_status(message, ok=False):
+    def show_status(message: str, ok: bool = False):
         status_label.config(text=message, fg="#6fdc8c" if ok else "#ff8080")
         status_label.pack(pady=(0, 10))
 
     def handle_choice():
         try:
-            choice = int(input_entry.get())
+            choice = int(input_entry.get().strip())
         except ValueError:
             show_status("Error: Please enter a valid choice number.")
             return
 
-        if choice == 1:
-            form = make_form(window, "Register Patient", 420, 320)
+        match choice:
+            case 1:
+                form = make_form(window, "Register Patient", 450, 360)
 
-            name_entry = add_form_field(form, "Name:", 0, input_font_size)
-            age_entry = add_form_field(form, "Age:", 1, input_font_size)
-            contact_entry = add_form_field(form, "Contact:", 2, input_font_size)
-            patient_id_entry = add_form_field(form, "Patient ID:", 3, input_font_size)
-            medical_history_entry = add_form_field(
-                form, "Medical History\n(comma separated):", 4, input_font_size
-            )
-
-            def submit():
-                try:
-                    p_name = name_entry.get().strip()
-                    p_age = int(age_entry.get().strip())
-                    p_contact = int(contact_entry.get().strip())
-                    p_id = patient_id_entry.get().strip()
-
-                    medical_history = [
-                        e.strip()
-                        for e in medical_history_entry.get().split(",")
-                        if e.strip()
-                    ]
-
-                    if not p_name or not p_id:
-                        show_status("Error: Name and Patient ID cannot be empty!")
-                        return
-
-                    pm.add_patient(
-                        name=p_name,
-                        age=p_age,
-                        contact=p_contact,
-                        patient_id=p_id,
-                        medical_history=medical_history,
-                    )
-
-                    show_status(f"Success: Registered patient {p_name}", ok=True)
-                    form.destroy()
-
-                except ValueError:
-                    show_status(
-                        "Error: Please enter valid numbers for Age and Contact."
-                    )
-
-            make_button(form, "Submit", submit, button_font_size).grid(
-                row=5, column=0, columnspan=2, pady=16
-            )
-
-        elif choice == 2:
-            d_form = make_form(window, "Register Doctor", 480, 400)
-
-            d_name_entry = add_form_field(d_form, "Name:", 0, input_font_size)
-            d_age_entry = add_form_field(d_form, "Age:", 1, input_font_size)
-            d_contact_entry = add_form_field(d_form, "Contact:", 2, input_font_size)
-            d_id_entry = add_form_field(d_form, "Doctor ID:", 3, input_font_size)
-            d_specialization_entry = add_form_field(
-                d_form, "Specialization:", 4, input_font_size
-            )
-            d_available_days_entry = add_form_field(
-                d_form, "Available Days\n(comma separated):", 5, input_font_size
-            )
-
-            def submit_doctor():
-                try:
-                    name_val = d_name_entry.get().strip()
-                    age_val = int(d_age_entry.get().strip())
-                    contact_val = int(d_contact_entry.get().strip())
-                    id_val = d_id_entry.get().strip()
-                    spec_val = d_specialization_entry.get().strip()
-
-                    days_list = [
-                        day.strip()
-                        for day in d_available_days_entry.get().split(",")
-                        if day.strip()
-                    ]
-
-                    dm.add_doctor(
-                        name=name_val,
-                        age=age_val,
-                        contact=contact_val,
-                        doctor_id=id_val,
-                        specialization=spec_val,
-                        available_days=days_list,
-                    )
-
-                    show_status(f"Success: Registered Doctor {name_val}", ok=True)
-                    d_form.destroy()
-
-                except ValueError:
-                    show_status("Error: Age and Contact must be valid integers.")
-
-            make_button(d_form, "Submit", submit_doctor, button_font_size).grid(
-                row=6, column=0, columnspan=2, pady=16
-            )
-
-        elif choice == 3:
-            app_form = make_form(window, "Book Appointment", 420, 320)
-
-            patient_id_for_app = add_form_field(
-                app_form, "Patient ID:", 0, input_font_size
-            )
-            doctor_id_for_app = add_form_field(
-                app_form, "Doctor ID:", 1, input_font_size
-            )
-            date_entry = add_form_field(
-                app_form, "Date (YYYY-MM-DD):", 2, input_font_size
-            )
-
-            def submit_booking():
-                am.book_appointment(
-                    patient_id=patient_id_for_app.get().strip(),
-                    doctor_id=doctor_id_for_app.get().strip(),
-                    date=date_entry.get().strip(),
+                name_entry = add_form_field(form, "Name:", 0, input_font_size)
+                age_entry = add_form_field(form, "Age:", 1, input_font_size)
+                contact_entry = add_form_field(form, "Contact:", 2, input_font_size)
+                patient_id_entry = add_form_field(
+                    form, "Patient ID:", 3, input_font_size
                 )
-                app_form.destroy()
-
-            make_button(
-                app_form, "Book Appointment", submit_booking, button_font_size
-            ).grid(row=3, column=0, columnspan=2, pady=16)
-
-        elif choice == 4:
-            del_app_form = make_form(window, "Cancel Appointment", 400, 220)
-
-            appointment_id_entry = add_form_field(
-                del_app_form, "Appointment ID:", 0, input_font_size
-            )
-
-            def submit_cancel():
-                am.cancel_appointment(appointment_id=appointment_id_entry.get().strip())
-                del_app_form.destroy()
-
-            make_button(
-                del_app_form, "Cancel Appointment", submit_cancel, button_font_size
-            ).grid(row=1, column=0, columnspan=2, pady=16)
-
-        elif choice == 5:
-            comp_app = make_form(window, "Complete Appointment", 400, 220)
-
-            appointment_id_entry = add_form_field(
-                comp_app, "Appointment ID:", 0, input_font_size
-            )
-
-            def submit_complete():
-                am.complete_appointment(
-                    appointment_id=appointment_id_entry.get().strip()
+                medical_history_entry = add_form_field(
+                    form,
+                    "Medical History\n(comma separated):",
+                    4,
+                    input_font_size,
                 )
-                comp_app.destroy()
 
-            make_button(
-                comp_app, "Complete Appointment", submit_complete, button_font_size
-            ).grid(row=1, column=0, columnspan=2, pady=16)
+                def submit():
+                    try:
+                        p_name = name_entry.get().strip()
+                        p_age = int(age_entry.get().strip())
+                        p_contact = int(contact_entry.get().strip())
+                        p_id = patient_id_entry.get().strip()
 
-        elif choice == 6:
-            patient_name_form = make_form(window, "View Patient Appointments", 420, 220)
+                        medical_history = [
+                            e.strip()
+                            for e in medical_history_entry.get().split(",")
+                            if e.strip()
+                        ]
 
-            patient_id_entry = add_form_field(
-                patient_name_form, "Patient ID:", 0, input_font_size
-            )
+                        if not p_name or not p_id:
+                            show_status("Error: Name and Patient ID cannot be empty!")
+                            return
 
-            def submit_view_patient():
-                for r in am.get_patient_appointments(
-                    patient_id=patient_id_entry.get().strip()
-                ):
-                    print(r)
-                patient_name_form.destroy()
+                        pm.add_patient(
+                            name=p_name,
+                            age=p_age,
+                            contact=p_contact,
+                            patient_id=p_id,
+                            medical_history=medical_history,
+                        )
 
-            make_button(
-                patient_name_form,
-                "Fetch Appointments",
-                submit_view_patient,
-                button_font_size,
-            ).grid(row=1, column=0, columnspan=2, pady=16)
+                        show_status(f"Success: Registered patient {p_name}", ok=True)
+                        form.destroy()
 
-        elif choice == 7:
-            d_sch_form = make_form(window, "Doctor Schedule", 440, 260)
+                    except ValueError:
+                        show_status(
+                            "Error: Please enter valid numbers for Age and Contact."
+                        )
 
-            doctor_id_entry = add_form_field(
-                d_sch_form, "Doctor ID:", 0, input_font_size
-            )
-            date_needed_entry = add_form_field(
-                d_sch_form, "Date (YYYY-MM-DD):", 1, input_font_size
-            )
+                make_button(form, "Submit", submit, button_font_size).grid(
+                    row=5, column=0, columnspan=2, pady=16
+                )
 
-            def submit_view_schedule():
-                for r in am.get_doctor_schedule(
-                    doctor_id=doctor_id_entry.get().strip(),
-                    date=date_needed_entry.get().strip(),
-                ):
-                    print(r)
-                d_sch_form.destroy()
+            case 2:
+                d_form = make_form(window, "Register Doctor", 480, 420)
 
-            make_button(
-                d_sch_form, "Fetch Schedule", submit_view_schedule, button_font_size
-            ).grid(row=2, column=0, columnspan=2, pady=16)
+                d_name_entry = add_form_field(d_form, "Name:", 0, input_font_size)
+                d_age_entry = add_form_field(d_form, "Age:", 1, input_font_size)
+                d_contact_entry = add_form_field(d_form, "Contact:", 2, input_font_size)
+                d_id_entry = add_form_field(d_form, "Doctor ID:", 3, input_font_size)
+                d_specialization_entry = add_form_field(
+                    d_form, "Specialization:", 4, input_font_size
+                )
+                d_available_days_entry = add_form_field(
+                    d_form,
+                    "Available Days\n(comma separated):",
+                    5,
+                    input_font_size,
+                )
 
-        elif choice == 8:
-            p_name_form = make_form(window, "Search Patient", 420, 220)
+                def submit_doctor():
+                    try:
+                        name_val = d_name_entry.get().strip()
+                        age_val = int(d_age_entry.get().strip())
+                        contact_val = int(d_contact_entry.get().strip())
+                        id_val = d_id_entry.get().strip()
+                        spec_val = d_specialization_entry.get().strip()
 
-            patient_name_entry = add_form_field(
-                p_name_form, "Patient Name:", 0, input_font_size
-            )
+                        days_list = [
+                            day.strip()
+                            for day in d_available_days_entry.get().split(",")
+                            if day.strip()
+                        ]
 
-            def submit_search():
-                for r in pm.find_patient(name=patient_name_entry.get().strip()):
-                    print(r)
-                p_name_form.destroy()
+                        dm.add_doctor(
+                            name=name_val,
+                            age=age_val,
+                            contact=contact_val,
+                            doctor_id=id_val,
+                            specialization=spec_val,
+                            available_days=days_list,
+                        )
 
-            make_button(
-                p_name_form, "Search Database", submit_search, button_font_size
-            ).grid(row=1, column=0, columnspan=2, pady=16)
+                        show_status(f"Success: Registered Doctor {name_val}", ok=True)
+                        d_form.destroy()
 
-        else:
-            window.destroy()
+                    except ValueError:
+                        show_status("Error: Age and Contact must be valid integers.")
+
+                make_button(d_form, "Submit", submit_doctor, button_font_size).grid(
+                    row=6, column=0, columnspan=2, pady=16
+                )
+
+            case 3:
+                app_form = make_form(window, "Book Appointment", 450, 280)
+
+                patient_id_for_app = add_form_field(
+                    app_form, "Patient ID:", 0, input_font_size
+                )
+                doctor_id_for_app = add_form_field(
+                    app_form, "Doctor ID:", 1, input_font_size
+                )
+                date_entry = add_form_field(
+                    app_form, "Date (YYYY-MM-DD):", 2, input_font_size
+                )
+
+                def submit_booking():
+                    am.book_appointment(
+                        patient_id=patient_id_for_app.get().strip(),
+                        doctor_id=doctor_id_for_app.get().strip(),
+                        date=date_entry.get().strip(),
+                    )
+                    show_status("Appointment booked successfully!", ok=True)
+                    app_form.destroy()
+
+                make_button(
+                    app_form,
+                    "Book Appointment",
+                    submit_booking,
+                    button_font_size,
+                ).grid(row=3, column=0, columnspan=2, pady=16)
+
+            case 4:
+                del_app_form = make_form(window, "Cancel Appointment", 400, 200)
+
+                appointment_id_entry = add_form_field(
+                    del_app_form, "Appointment ID:", 0, input_font_size
+                )
+
+                def submit_cancel():
+                    am.cancel_appointment(
+                        appointment_id=appointment_id_entry.get().strip()
+                    )
+                    show_status("Appointment cancelled.", ok=True)
+                    del_app_form.destroy()
+
+                make_button(
+                    del_app_form,
+                    "Cancel Appointment",
+                    submit_cancel,
+                    button_font_size,
+                ).grid(row=1, column=0, columnspan=2, pady=16)
+
+            case 5:
+                comp_app = make_form(window, "Complete Appointment", 400, 200)
+
+                appointment_id_entry = add_form_field(
+                    comp_app, "Appointment ID:", 0, input_font_size
+                )
+
+                def submit_complete():
+                    am.complete_appointment(
+                        appointment_id=appointment_id_entry.get().strip()
+                    )
+                    show_status("Appointment marked completed.", ok=True)
+                    comp_app.destroy()
+
+                make_button(
+                    comp_app,
+                    "Complete Appointment",
+                    submit_complete,
+                    button_font_size,
+                ).grid(row=1, column=0, columnspan=2, pady=16)
+
+            case 6:
+                patient_name_form = make_form(
+                    window, "View Patient Appointments", 420, 200
+                )
+
+                patient_id_entry = add_form_field(
+                    patient_name_form, "Patient ID:", 0, input_font_size
+                )
+
+                def submit_view_patient():
+                    results = am.get_patient_appointments(
+                        patient_id=patient_id_entry.get().strip()
+                    )
+                    for r in results:
+                        print(r)
+                    show_status(f"Fetched {len(results)} appointment records.", ok=True)
+                    patient_name_form.destroy()
+
+                make_button(
+                    patient_name_form,
+                    "Fetch Appointments",
+                    submit_view_patient,
+                    button_font_size,
+                ).grid(row=1, column=0, columnspan=2, pady=16)
+
+            case 7:
+                d_sch_form = make_form(window, "Doctor Schedule", 440, 240)
+
+                doctor_id_entry = add_form_field(
+                    d_sch_form, "Doctor ID:", 0, input_font_size
+                )
+                date_needed_entry = add_form_field(
+                    d_sch_form, "Date (YYYY-MM-DD):", 1, input_font_size
+                )
+
+                def submit_view_schedule():
+                    results = am.get_doctor_schedule(
+                        doctor_id=doctor_id_entry.get().strip(),
+                        date=date_needed_entry.get().strip(),
+                    )
+                    for r in results:
+                        print(r)
+                    show_status(f"Fetched schedule with {len(results)} items.", ok=True)
+                    d_sch_form.destroy()
+
+                make_button(
+                    d_sch_form,
+                    "Fetch Schedule",
+                    submit_view_schedule,
+                    button_font_size,
+                ).grid(row=2, column=0, columnspan=2, pady=16)
+
+            case 8:
+                p_name_form = make_form(window, "Search Patient", 420, 200)
+
+                patient_name_entry = add_form_field(
+                    p_name_form, "Patient Name:", 0, input_font_size
+                )
+
+                def submit_search():
+                    results = pm.find_patient(name=patient_name_entry.get().strip())
+                    for r in results:
+                        print(r)
+                    show_status(f"Found {len(results)} matching records.", ok=True)
+                    p_name_form.destroy()
+
+                make_button(
+                    p_name_form,
+                    "Search Database",
+                    submit_search,
+                    button_font_size,
+                ).grid(row=1, column=0, columnspan=2, pady=16)
+
+            case 9:
+                confirm_form = make_form(window, "Wipe Options", 520, 260)
+
+                make_label(
+                    confirm_form,
+                    "Select which database entity you want to wipe.\n"
+                    "Warning: You cannot undo this action. All data will be permanently gone!",
+                    label_font_size,
+                    justify="center",
+                ).pack(pady=(20, 15))
+
+                btn_frame = tk.Frame(confirm_form, bg=n_background)
+                btn_frame.pack(pady=10)
+
+                def do_pm_wipe():
+                    pm.wipe()
+                    show_status("Patient database wiped.", ok=True)
+                    confirm_form.destroy()
+
+                def do_dm_wipe():
+                    dm.wipe()
+                    show_status("Doctor database wiped.", ok=True)
+                    confirm_form.destroy()
+
+                def do_am_wipe():
+                    am.wipe()
+                    show_status("Appointments database wiped.", ok=True)
+                    confirm_form.destroy()
+
+                tk.Button(
+                    btn_frame,
+                    text="Wipe Patients",
+                    command=do_pm_wipe,
+                    bg="#c0392b",
+                    fg="white",
+                    relief="flat",
+                    padx=8,
+                    pady=6,
+                    cursor="hand2",
+                ).pack(side="left", padx=5)
+
+                tk.Button(
+                    btn_frame,
+                    text="Wipe Doctors",
+                    command=do_dm_wipe,
+                    bg="#d35400",
+                    fg="white",
+                    relief="flat",
+                    padx=8,
+                    pady=6,
+                    cursor="hand2",
+                ).pack(side="left", padx=5)
+
+                tk.Button(
+                    btn_frame,
+                    text="Wipe Appointments",
+                    command=do_am_wipe,
+                    bg="#8e44ad",
+                    fg="white",
+                    relief="flat",
+                    padx=8,
+                    pady=6,
+                    cursor="hand2",
+                ).pack(side="left", padx=5)
+
+                tk.Button(
+                    btn_frame,
+                    text="Cancel",
+                    command=confirm_form.destroy,
+                    bg="#444444",
+                    fg="white",
+                    relief="flat",
+                    padx=8,
+                    pady=6,
+                    cursor="hand2",
+                ).pack(side="left", padx=5)
+
+            case 10:
+                window.destroy()
+
+            case _:
+                show_status("Error: Please enter a number between 1 and 10.")
 
     sub_btn = make_button(container, "Submit Choice", handle_choice, button_font_size)
     sub_btn.pack(pady=(0, 10))
 
     window.bind("<Return>", lambda e: handle_choice())
-
     window.mainloop()
 
 
 if __name__ == "__main__":
-    run_main()
+    auth_screen()
