@@ -27,9 +27,9 @@ class PatientManager:
         if patient_id in self.patient_dict:
             del self.patient_dict[patient_id]
             self.save_to_json()
-            print(f"Patient {patient_id} successfully removed.")
+            return True
         else:
-            print(f"Patient with ID {patient_id} not found.")
+            return False
 
     def get_patient(self, patient_id):
         return self.patient_dict.get(patient_id)
@@ -95,9 +95,9 @@ class DoctorManager:
         if doctor_id in self.doctor_dict:
             del self.doctor_dict[doctor_id]
             self.save_to_json()
-            print(f"Doctor {doctor_id} successfully removed.")
+            return True
         else:
-            print(f"Doctor with ID {doctor_id} not found.")
+            return False
 
     def get_doctor(self, doctor_id):
         return self.doctor_dict.get(doctor_id)
