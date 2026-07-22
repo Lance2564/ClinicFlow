@@ -28,7 +28,7 @@ complete beginner, so don't expect anything fancy.
 - View a patient's appointments or a doctor's schedule
 - Search for patients by name
 - Data persists to JSON files in `data/`
-- Do a total database wipe
+- - Wipe patients, doctors, or appointments individually (after logging in)
 - Do login 
 
 ## What it CAN'T do
