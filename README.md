@@ -32,12 +32,12 @@ complete beginner, so don't expect anything fancy.
 - Do login 
 
 ## What it CAN'T do
-- ~~Do a total database wipe~~ (Added in 13th commit)
+- ~~Do a total database wipe~~ (Added, check commmits for more info)
 - ~~Do login (I think it should be there for a database wipe since you can't 
-  just allow anyone to wipe it all)~~ (Added in 13th commit)
+  just allow anyone to wipe it all)~~ (Added, check commits for more info)
 - No multi-user accounts
 - No  forgot password
-- ~~No way to remove a single patient or doctor (They exist in managers I just need to put it in main.py)~~ (Added in 14th commit)
+- ~~No way to remove a single patient or doctor (They exist in managers I just need to put it in main.py)~~ (Added, check commits for more info)
 - No editing existing record
 - No view all
 - No appointment rescheduling
