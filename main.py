@@ -3,7 +3,13 @@ import os
 import tkinter as tk
 
 # Imports the managers from the clinicflow folder you just downloaded and also since models is imported inside managers you don't need to worry about it
-from clinicflow import managers as ma
+try:
+    from clinicflow import managers as ma
+except ModuleNotFoundError:
+    print(
+        "Error: couldn't find the 'clinicflow' package. Make sure the package clinicflow is a sibling to main.py."
+    )
+    raise SystemExit(1)
 
 login_path = "data/login.json"
 n_background = "#1e1e1e"  # Main background color (Dark theme because light mode is a crime to humanity)
@@ -269,8 +275,10 @@ def run_main():
         "8.  Search Patient By Name",
         "9.  Delete Patient by Patient ID",
         "10. Delete Doctor by Doctor ID",
-        "11. Wipe Database",
-        "12. Exit",
+        "11. Reschedule Appointment",
+        "12. View All Records",
+        "13. Wipe Database",
+        "14. Exit",
     ]
 
     container = tk.Frame(window, bg=n_background)
@@ -656,8 +664,87 @@ def run_main():
                     button_font_size,
                 ).pack(pady=10)
 
-            # The func to wipe databases
             case 11:
+                resched_form = make_form(window, "Reschedule Appointment", 440, 240)
+
+                appointment_id_entry = add_form_field(
+                    resched_form, "Appointment ID:", 0, input_font_size
+                )
+                new_date_entry = add_form_field(
+                    resched_form, "New Date (YYYY-MM-DD):", 1, input_font_size
+                )
+
+                def submit_reschedule():
+                    a_id = appointment_id_entry.get().strip()
+                    new_date = new_date_entry.get().strip()
+                    error = am.reschedule_appointment(a_id, new_date)
+                    if error is None:
+                        show_status(
+                            f"Appointment {a_id} rescheduled to {new_date}.", ok=True
+                        )
+                    else:
+                        show_status(error)
+                    resched_form.destroy()
+
+                make_button(
+                    resched_form,
+                    "Reschedule",
+                    submit_reschedule,
+                    button_font_size,
+                ).grid(row=2, column=0, columnspan=2, pady=16)
+
+            case 12:
+                view_all_form = make_form(window, "View All Records", 420, 220)
+
+                make_label(
+                    view_all_form,
+                    "Choose what to list (results print to console).",
+                    label_font_size,
+                    justify="center",
+                ).pack(pady=(20, 15))
+
+                btn_frame = tk.Frame(view_all_form, bg=n_background)
+                btn_frame.pack(pady=10)
+
+                def do_view_patients():
+                    results = [p.get_summary() for p in pm.patient_dict.values()]
+                    for r in results:
+                        print(r)
+                    show_status(
+                        f"Listed {len(results)} patients (see console).", ok=True
+                    )
+                    view_all_form.destroy()
+
+                def do_view_doctors():
+                    results = [d.get_summary() for d in dm.doctor_dict.values()]
+                    for r in results:
+                        print(r)
+                    show_status(
+                        f"Listed {len(results)} doctors (see console).", ok=True
+                    )
+                    view_all_form.destroy()
+
+                def do_view_appointments():
+                    results = [a.get_summary() for a in am.appointments.values()]
+                    for r in results:
+                        print(r)
+                    show_status(
+                        f"Listed {len(results)} appointments (see console).", ok=True
+                    )
+                    view_all_form.destroy()
+
+                make_button(
+                    btn_frame, "Patients", do_view_patients, button_font_size
+                ).pack(side="left", padx=5)
+                make_button(
+                    btn_frame, "Doctors", do_view_doctors, button_font_size
+                ).pack(side="left", padx=5)
+                make_button(
+                    btn_frame, "Appointments", do_view_appointments, button_font_size
+                ).pack(side="left", padx=5)
+
+            # The func to wipe databases
+            case 13:
                 confirm_form = make_form(window, "Wipe Options", 520, 260)
 
                 make_label(
@@ -735,11 +822,11 @@ def run_main():
                     cursor="hand2",
                 ).pack(side="left", padx=5)
 
-            case 12:
+            case 14:
                 window.destroy()
 
             case _:
-                show_status("Error: Please enter a number from 1 to 12.")
+                show_status("Error: Please enter a number from 1 to 14.")
 
     sub_btn = make_button(container, "Submit Choice", handle_choice, button_font_size)
     sub_btn.pack(pady=(0, 10))
