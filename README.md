@@ -29,14 +29,21 @@ complete beginner, so don't expect anything fancy.
 - Search for patients by name
 - Login, and wipe patients, doctors, or appointments individually
 - Data persists to JSON files in `data/`
+- List all doctors, patients, and their ongoing appointments
+- Reschedule appointments
 
 ## What it CAN'T do
 - No multi-user accounts
 - No forgot password
 - No editing existing records
-- No "view all" listing
-- No appointment rescheduling
 
--These will be added in the next commit.
+## CHANGELOGS
+- Added a 'view all' feature
+- Added a reschedule appointments function
+
+## LIMITATIONS
+- The View All part prints to CONSOLE instead of showing it in the GUI
+
+These will be added in the next commit.
 
 
