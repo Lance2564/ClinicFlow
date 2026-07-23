@@ -44,6 +44,5 @@ complete beginner, so don't expect anything fancy.
 ## LIMITATIONS
 - The View All part prints to CONSOLE instead of showing it in the GUI
 
-These will be added in the next commit.
 
 
