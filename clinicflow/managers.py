@@ -156,26 +156,27 @@ class AppointmentManager:
         return self.__doctor_manager
 
     def book_appointment(self, patient_id, doctor_id, date):
+        """Returns None on success, or an error message string on failure."""
         patient = self.patient_manager.get_patient(patient_id)
         if patient is None:
-            print(
-                "No such patient found. This may have occurred due to: \nWrong Patient id \nThe patient doesn't exist"
+            return (
+                "No such patient found. This may have occurred due to: "
+                "wrong patient ID, or the patient doesn't exist."
             )
-            return
 
         doctor = self.doctor_manager.get_doctor(doctor_id)
         if doctor is None:
-            print(
-                "No such Doctor found. This may have occurred due to: \nWrong Doctor id \nThe doctor doesn't exist"
+            return (
+                "No such doctor found. This may have occurred due to: "
+                "wrong doctor ID, or the doctor doesn't exist."
             )
-            return
 
         day = datetime.strptime(date, "%Y-%m-%d").strftime("%A").lower()
         if not doctor.is_available(day):
-            print(
-                f"Doctor {doctor_id} is not available on {day.capitalize()}. Available days: {doctor.available_days}"
+            return (
+                f"Doctor {doctor_id} is not available on {day.capitalize()}. "
+                f"Available days: {doctor.available_days}"
             )
-            return
 
         for appointment in self.__appointments.values():
             if (
@@ -183,8 +184,7 @@ class AppointmentManager:
                 and appointment.date == date
                 and appointment.status == "scheduled"
             ):
-                print(f"Doctor {doctor_id} already has an appointment on {date}.")
-                return
+                return f"Doctor {doctor_id} already has an appointment on {date}."
 
         appointment_id = f"A{len(self.__appointments) + 1:03d}"
 
@@ -198,31 +198,31 @@ class AppointmentManager:
 
         self.__appointments[appointment_id] = new_appointment
         self.save_to_json()
-        print(f"Appointment {appointment_id} successfully booked for {date}.")
+        return None
 
     def cancel_appointment(self, appointment_id):
+        """Returns None on success, or an error message string on failure."""
         if appointment_id in self.__appointments:
             self.__appointments[appointment_id].status = "cancelled"
             self.save_to_json()
-            print(f"Appointment {appointment_id} successfully cancelled.")
+            return None
         else:
-            print(f"No appointment with ID {appointment_id} found.")
+            return f"No appointment with ID {appointment_id} found."
 
     def complete_appointment(self, appointment_id):
+        """Returns None on success, or an error message string on failure."""
         if appointment_id in self.__appointments:
             self.__appointments[appointment_id].status = "completed"
             self.save_to_json()
-            print("The appointment status has been turned to completed")
+            return None
         else:
-            print(f"No appointment with the id {appointment_id} was found.")
+            return f"No appointment with the id {appointment_id} was found."
 
     def get_patient_appointments(self, patient_id):
         results = []
         for appointment in self.__appointments.values():
             if appointment.patient_id == patient_id:
                 results.append(appointment.get_summary())
-        if not results:
-            print(f"No appointments found for patient {patient_id}.")
         return results
 
     def get_doctor_schedule(self, doctor_id, date):
@@ -234,8 +234,6 @@ class AppointmentManager:
                 and appointment.status != "cancelled"
             ):
                 results.append(appointment.get_summary())
-        if not results:
-            print(f"No active schedule found for doctor {doctor_id}.")
         return results
 
     def reschedule_appointment(self, appointment_id, new_date):
