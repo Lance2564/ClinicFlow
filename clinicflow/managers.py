@@ -238,6 +238,35 @@ class AppointmentManager:
             print(f"No active schedule found for doctor {doctor_id}.")
         return results
 
+    def reschedule_appointment(self, appointment_id, new_date):
+        if appointment_id not in self.__appointments:
+            return "No appointment with that ID."
+
+        appointment = self.__appointments[appointment_id]
+        if appointment.status != "scheduled":
+            return f"Cannot reschedule — appointment is '{appointment.status}'."
+
+        doctor = self.doctor_manager.get_doctor(appointment.doctor_id)
+        if doctor is None:
+            return "The doctor for this appointment no longer exists."
+
+        day = datetime.strptime(new_date, "%Y-%m-%d").strftime("%A").lower()
+        if not doctor.is_available(day):
+            return f"Doctor is not available on {day.capitalize()}."
+
+        for other in self.__appointments.values():
+            if (
+                other.appointment_id != appointment_id
+                and other.doctor_id == appointment.doctor_id
+                and other.date == new_date
+                and other.status == "scheduled"
+            ):
+                return "Doctor already has an appointment on that date."
+
+        appointment.date = new_date
+        self.save_to_json()
+        return None
+
     def save_to_json(self):
         os.makedirs(os.path.dirname(self.filepath), exist_ok=True)
         raw_data = {aid: app.to_dict() for aid, app in self.__appointments.items()}
