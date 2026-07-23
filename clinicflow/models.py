@@ -145,6 +145,10 @@ class Appointment:
     def appointment_id(self):
         return self.__appointment_id
 
+    @date.setter
+    def date(self, new_date):
+        self.__date = new_date
+
     def to_dict(self):
         return {
             "patient_id": self.patient_id,
