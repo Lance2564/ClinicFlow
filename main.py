@@ -470,13 +470,16 @@ def run_main():
                 )
 
                 def submit_booking():
-                    am.book_appointment(
+                    error = am.book_appointment(
                         patient_id=patient_id_for_app.get().strip(),
                         doctor_id=doctor_id_for_app.get().strip(),
                         date=date_entry.get().strip(),
                     )
-                    show_status("Appointment booked successfully!", ok=True)
-                    app_form.destroy()
+                    if error is None:
+                        show_status("Appointment booked successfully!", ok=True)
+                        app_form.destroy()
+                    else:
+                        show_status(error)
 
                 make_button(
                     app_form,
@@ -494,11 +497,14 @@ def run_main():
                 )
 
                 def submit_cancel():
-                    am.cancel_appointment(
+                    error = am.cancel_appointment(
                         appointment_id=appointment_id_entry.get().strip()
                     )
-                    show_status("Appointment cancelled.", ok=True)
-                    del_app_form.destroy()
+                    if error is None:
+                        show_status("Appointment cancelled.", ok=True)
+                        del_app_form.destroy()
+                    else:
+                        show_status(error)
 
                 make_button(
                     del_app_form,
@@ -516,11 +522,14 @@ def run_main():
                 )
 
                 def submit_complete():
-                    am.complete_appointment(
+                    error = am.complete_appointment(
                         appointment_id=appointment_id_entry.get().strip()
                     )
-                    show_status("Appointment marked completed.", ok=True)
-                    comp_app.destroy()
+                    if error is None:
+                        show_status("Appointment marked completed.", ok=True)
+                        comp_app.destroy()
+                    else:
+                        show_status(error)
 
                 make_button(
                     comp_app,
@@ -545,7 +554,12 @@ def run_main():
                     )
                     for r in results:
                         print(r)
-                    show_status(f"Fetched {len(results)} appointment records.", ok=True)
+                    if results:
+                        show_status(
+                            f"Fetched {len(results)} appointment records.", ok=True
+                        )
+                    else:
+                        show_status("No appointments found for that patient.")
                     patient_name_form.destroy()
 
                 make_button(
@@ -573,7 +587,12 @@ def run_main():
                     )
                     for r in results:
                         print(r)
-                    show_status(f"Fetched schedule with {len(results)} items.", ok=True)
+                    if results:
+                        show_status(
+                            f"Fetched schedule with {len(results)} items.", ok=True
+                        )
+                    else:
+                        show_status("No active schedule found for that doctor.")
                     d_schedule_form.destroy()
 
                 make_button(
