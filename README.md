@@ -32,17 +32,11 @@ complete beginner, so don't expect anything fancy.
 - List all doctors, patients, and their ongoing appointments
 - Reschedule appointments
 
-## What it CAN'T do
-- No multi-user accounts
-- No forgot password
-- No editing existing records
-
 ## CHANGELOGS
 - Added a 'view all' feature
 - Added a reschedule appointments function
+- Enabled editing existing records
+- Added forgot password using username
 
 ## LIMITATIONS
 - The View All part prints to CONSOLE instead of showing it in the GUI
-
-
-
