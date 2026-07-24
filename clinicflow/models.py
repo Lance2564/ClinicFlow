@@ -123,9 +123,17 @@ class Appointment:
     def patient_id(self):
         return self.__patient_id
 
+    @patient_id.setter
+    def patient_id(self, new_patient_id):
+        self.__patient_id = new_patient_id
+
     @property
     def doctor_id(self):
         return self.__doctor_id
+
+    @doctor_id.setter
+    def doctor_id(self, new_doctor_id):
+        self.__doctor_id = new_doctor_id
 
     @property
     def date(self):
