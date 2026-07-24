@@ -34,6 +34,45 @@ class PatientManager:
     def get_patient(self, patient_id):
         return self.patient_dict.get(patient_id)
 
+    def edit_patient(
+        self,
+        patient_id,
+        name=None,
+        age=None,
+        contact=None,
+        new_patient_id=None,
+        medical_history=None,
+    ):
+        """Returns None on success, or an error message string on failure.
+        Any field left as None keeps its current value. If new_patient_id is
+        given and differs from patient_id, the patient is moved to the new key
+        (the caller is responsible for cascading the ID change into any
+        appointments, since this manager doesn't know about those)."""
+        existing = self.get_patient(patient_id)
+        if existing is None:
+            return f"No patient with ID {patient_id} found."
+
+        target_id = new_patient_id if new_patient_id else patient_id
+        if target_id != patient_id and target_id in self.patient_dict:
+            return f"Patient ID {target_id} is already in use."
+
+        updated = m.Patient(
+            name=name if name else existing.name,
+            age=age if age is not None else existing.age,
+            contact=contact if contact is not None else existing.contact,
+            patient_id=target_id,
+            medical_history=(
+                medical_history
+                if medical_history is not None
+                else existing.medical_history
+            ),
+        )
+
+        del self.patient_dict[patient_id]
+        self.patient_dict[target_id] = updated
+        self.save_to_json()
+        return None
+
     def find_patient(self, name):
         results = []
         for patient in self.patient_dict.values():
@@ -101,6 +140,49 @@ class DoctorManager:
 
     def get_doctor(self, doctor_id):
         return self.doctor_dict.get(doctor_id)
+
+    def edit_doctor(
+        self,
+        doctor_id,
+        name=None,
+        age=None,
+        contact=None,
+        new_doctor_id=None,
+        specialization=None,
+        available_days=None,
+    ):
+        """Returns None on success, or an error message string on failure.
+        Any field left as None keeps its current value. If new_doctor_id is
+        given and differs from doctor_id, the doctor is moved to the new key
+        (the caller is responsible for cascading the ID change into any
+        appointments, since this manager doesn't know about those)."""
+        existing = self.get_doctor(doctor_id)
+        if existing is None:
+            return f"No doctor with ID {doctor_id} found."
+
+        target_id = new_doctor_id if new_doctor_id else doctor_id
+        if target_id != doctor_id and target_id in self.doctor_dict:
+            return f"Doctor ID {target_id} is already in use."
+
+        updated = m.Doctor(
+            name=name if name else existing.name,
+            age=age if age is not None else existing.age,
+            contact=contact if contact is not None else existing.contact,
+            doctor_id=target_id,
+            specialization=(
+                specialization if specialization else existing.specialization
+            ),
+            available_days=(
+                available_days
+                if available_days is not None
+                else existing.available_days
+            ),
+        )
+
+        del self.doctor_dict[doctor_id]
+        self.doctor_dict[target_id] = updated
+        self.save_to_json()
+        return None
 
     def save_to_json(self):
         os.makedirs(os.path.dirname(self.filepath), exist_ok=True)
@@ -235,6 +317,28 @@ class AppointmentManager:
             ):
                 results.append(appointment.get_summary())
         return results
+
+    def reassign_patient_id(self, old_id, new_id):
+        """Updates every appointment referencing old_id to point to new_id.
+        Used when a patient's ID is changed via PatientManager.edit_patient."""
+        changed = False
+        for appointment in self.__appointments.values():
+            if appointment.patient_id == old_id:
+                appointment.patient_id = new_id
+                changed = True
+        if changed:
+            self.save_to_json()
+
+    def reassign_doctor_id(self, old_id, new_id):
+        """Updates every appointment referencing old_id to point to new_id.
+        Used when a doctor's ID is changed via DoctorManager.edit_doctor."""
+        changed = False
+        for appointment in self.__appointments.values():
+            if appointment.doctor_id == old_id:
+                appointment.doctor_id = new_id
+                changed = True
+        if changed:
+            self.save_to_json()
 
     def reschedule_appointment(self, appointment_id, new_date):
         if appointment_id not in self.__appointments:
