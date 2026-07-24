@@ -146,6 +146,7 @@ def auth_screen():
         def put_login_in_json():
             u = username_entry.get().strip()
             p = password_entry.get().strip()
+
             if not u or not p:
                 status_label.config(text="Username and password can't be empty.")
                 status_label.pack(pady=(5, 5))
@@ -153,7 +154,14 @@ def auth_screen():
 
             os.makedirs(os.path.dirname(login_path), exist_ok=True)
             with open(login_path, "w") as f:
-                json.dump({"username": u, "password": p}, f, indent=4)
+                json.dump(
+                    {
+                        "username": u,
+                        "password": p,
+                    },
+                    f,
+                    indent=4,
+                )
 
             window.destroy()
             run_main()
@@ -194,9 +202,12 @@ def auth_screen():
             container, "Continue without login", no_sign, button_font_size
         ).pack(pady=6)
 
-    def build_login_form():
+    def build_login_form(message=None):
         with open(login_path, "r") as f:
             stored = json.load(f)
+
+        for w in container.winfo_children():
+            w.destroy()
 
         make_label(
             parent=container, text="Login", size=title_font_size, bold=True
@@ -214,6 +225,9 @@ def auth_screen():
         password_entry.pack(pady=(0, 10))
 
         status_label = make_label(parent=container, text="", size=label_font_size)
+        if message:
+            status_label.config(text=message, fg="#6fdc8c")
+            status_label.pack(pady=(5, 5))
 
         def try_login():
             u = username_entry.get().strip()
@@ -237,6 +251,94 @@ def auth_screen():
             text="Submit",
             command=try_login,
             font_size=button_font_size,
+        ).pack(pady=10)
+
+        make_button(
+            parent=container,
+            text="Forgot password?",
+            command=build_forgot_password_form,
+            font_size=button_font_size,
+        ).pack(pady=6)
+
+    def build_forgot_password_form():
+        with open(login_path, "r") as f:
+            stored = json.load(f)
+
+        for w in container.winfo_children():
+            w.destroy()
+
+        make_label(container, "Reset Password", title_font_size, bold=True).pack(
+            pady=(0, 20)
+        )
+
+        make_label(container, "Enter your Username:", label_font_size).pack(
+            pady=(0, 10)
+        )
+
+        username_entry = make_entry(container, input_font_size, width=25)
+        username_entry.pack(pady=(0, 10))
+
+        status_label = make_label(container, "", label_font_size)
+
+        def check_username():
+            entered_username = username_entry.get().strip()
+            stored_username = stored.get("username", "")
+
+            if not entered_username:
+                status_label.config(text="Username cannot be empty.")
+                status_label.pack(pady=(5, 5))
+            elif entered_username.lower() == stored_username.lower():
+                build_reset_password_form(stored)
+            else:
+                status_label.config(text="Username not found.")
+                status_label.pack(pady=(5, 5))
+
+        make_button(container, "Submit", check_username, button_font_size).pack(pady=10)
+        make_button(
+            container, "Back to login", build_login_form, button_font_size
+        ).pack(pady=6)
+
+    def build_reset_password_form(stored):
+        for w in container.winfo_children():
+            w.destroy()
+
+        make_label(container, "Set New Password", title_font_size, bold=True).pack(
+            pady=(0, 20)
+        )
+
+        make_label(container, "New Password:", label_font_size).pack()
+        new_pw_entry = make_entry(container, input_font_size, width=25)
+        new_pw_entry.config(show="*")
+        new_pw_entry.pack(pady=(0, 10))
+
+        make_label(container, "Confirm Password:", label_font_size).pack()
+        confirm_pw_entry = make_entry(container, input_font_size, width=25)
+        confirm_pw_entry.config(show="*")
+        confirm_pw_entry.pack(pady=(0, 10))
+
+        status_label = make_label(container, "", label_font_size)
+
+        def save_new_password():
+            new_pw = new_pw_entry.get().strip()
+            confirm_pw = confirm_pw_entry.get().strip()
+
+            if not new_pw:
+                status_label.config(text="Password can't be empty.")
+                status_label.pack(pady=(5, 5))
+                return
+            if new_pw != confirm_pw:
+                status_label.config(text="Passwords don't match.")
+                status_label.pack(pady=(5, 5))
+                return
+
+            stored["password"] = new_pw
+            with open(login_path, "w") as f:
+                json.dump(stored, f, indent=4)
+
+            build_login_form(message="Password updated. Please log in.")
+
+        make_button(
+            container, "Save New Password", save_new_password, button_font_size
         ).pack(pady=10)
 
     if blank_login():
@@ -278,7 +380,9 @@ def run_main():
         "11. Reschedule Appointment",
         "12. View All Records",
         "13. Wipe Database",
-        "14. Exit",
+        "14. Edit Patient",
+        "15. Edit Doctor",
+        "16. Exit",
     ]
 
     container = tk.Frame(window, bg=n_background)
@@ -762,8 +866,161 @@ def run_main():
                     btn_frame, "Appointments", do_view_appointments, button_font_size
                 ).pack(side="left", padx=5)
 
-            # The func to wipe databases
+            # The func to edit the fields for the patient
             case 13:
+                edit_p_form = make_form(window, "Edit Patient", 500, 420)
+
+                make_label(
+                    edit_p_form,
+                    "Leave a field blank to keep its current value.",
+                    label_font_size,
+                    wraplength=440,
+                    justify="center",
+                ).grid(row=0, column=0, columnspan=2, padx=20, pady=(15, 5))
+
+                edit_p_id_entry = add_form_field(
+                    edit_p_form, "Patient ID:", 1, input_font_size
+                )
+                edit_p_name_entry = add_form_field(
+                    edit_p_form, "New Name:", 2, input_font_size
+                )
+                edit_p_age_entry = add_form_field(
+                    edit_p_form, "New Age:", 3, input_font_size
+                )
+                edit_p_contact_entry = add_form_field(
+                    edit_p_form, "New Contact:", 4, input_font_size
+                )
+                edit_p_new_id_entry = add_form_field(
+                    edit_p_form, "New Patient ID:", 5, input_font_size
+                )
+
+                def submit_edit_patient():
+                    old_id = edit_p_id_entry.get().strip()
+                    name_val = edit_p_name_entry.get().strip()
+                    age_val = edit_p_age_entry.get().strip()
+                    contact_val = edit_p_contact_entry.get().strip()
+                    new_id_val = edit_p_new_id_entry.get().strip()
+
+                    if not old_id:
+                        show_status("Error: Patient ID is required.")
+                        return
+
+                    try:
+                        age_arg = int(age_val) if age_val else None
+                        contact_arg = int(contact_val) if contact_val else None
+                    except ValueError:
+                        show_status("Error: Age and Contact must be valid integers.")
+                        return
+
+                    error = pm.edit_patient(
+                        patient_id=old_id,
+                        name=name_val or None,
+                        age=age_arg,
+                        contact=contact_arg,
+                        new_patient_id=new_id_val or None,
+                    )
+
+                    if error is not None:
+                        show_status(error)
+                        return
+
+                    if new_id_val and new_id_val != old_id:
+                        am.reassign_patient_id(old_id, new_id_val)
+
+                    show_status(f"Patient {old_id} updated successfully.", ok=True)
+                    edit_p_form.destroy()
+
+                make_button(
+                    edit_p_form, "Save Changes", submit_edit_patient, button_font_size
+                ).grid(row=6, column=0, columnspan=2, pady=16)
+
+            case 14:
+                edit_d_form = make_form(window, "Edit Doctor", 500, 480)
+
+                make_label(
+                    edit_d_form,
+                    "Leave a field blank to keep its current value.",
+                    label_font_size,
+                    wraplength=440,
+                    justify="center",
+                ).grid(row=0, column=0, columnspan=2, padx=20, pady=(15, 5))
+
+                edit_d_id_entry = add_form_field(
+                    edit_d_form, "Doctor ID:", 1, input_font_size
+                )
+                edit_d_name_entry = add_form_field(
+                    edit_d_form, "New Name:", 2, input_font_size
+                )
+                edit_d_age_entry = add_form_field(
+                    edit_d_form, "New Age:", 3, input_font_size
+                )
+                edit_d_contact_entry = add_form_field(
+                    edit_d_form, "New Contact:", 4, input_font_size
+                )
+                edit_d_spec_entry = add_form_field(
+                    edit_d_form, "New Specialization:", 5, input_font_size
+                )
+                edit_d_days_entry = add_form_field(
+                    edit_d_form,
+                    "New Available Days\n(comma separated):",
+                    6,
+                    input_font_size,
+                )
+                edit_d_new_id_entry = add_form_field(
+                    edit_d_form, "New Doctor ID:", 7, input_font_size
+                )
+
+                def submit_edit_doctor():
+                    old_id = edit_d_id_entry.get().strip()
+                    name_val = edit_d_name_entry.get().strip()
+                    age_val = edit_d_age_entry.get().strip()
+                    contact_val = edit_d_contact_entry.get().strip()
+                    spec_val = edit_d_spec_entry.get().strip()
+                    days_val = edit_d_days_entry.get().strip()
+                    new_id_val = edit_d_new_id_entry.get().strip()
+
+                    if not old_id:
+                        show_status("Error: Doctor ID is required.")
+                        return
+
+                    try:
+                        age_arg = int(age_val) if age_val else None
+                        contact_arg = int(contact_val) if contact_val else None
+                    except ValueError:
+                        show_status("Error: Age and Contact must be valid integers.")
+                        return
+
+                    days_arg = (
+                        [d.strip() for d in days_val.split(",") if d.strip()]
+                        if days_val
+                        else None
+                    )
+
+                    error = dm.edit_doctor(
+                        doctor_id=old_id,
+                        name=name_val or None,
+                        age=age_arg,
+                        contact=contact_arg,
+                        new_doctor_id=new_id_val or None,
+                        specialization=spec_val or None,
+                        available_days=days_arg,
+                    )
+
+                    if error is not None:
+                        show_status(error)
+                        return
+
+                    if new_id_val and new_id_val != old_id:
+                        am.reassign_doctor_id(old_id, new_id_val)
+
+                    show_status(f"Doctor {old_id} updated successfully.", ok=True)
+                    edit_d_form.destroy()
+
+                make_button(
+                    edit_d_form, "Save Changes", submit_edit_doctor, button_font_size
+                ).grid(row=8, column=0, columnspan=2, pady=16)
+
+            case 15:
                 confirm_form = make_form(window, "Wipe Options", 520, 260)
 
                 make_label(
@@ -841,11 +1098,11 @@ def run_main():
                     cursor="hand2",
                 ).pack(side="left", padx=5)
 
-            case 14:
+            case 16:
                 window.destroy()
 
             case _:
-                show_status("Error: Please enter a number from 1 to 14.")
+                show_status("Error: Please enter a number from 1 to 16.")
 
     sub_btn = make_button(container, "Submit Choice", handle_choice, button_font_size)
     sub_btn.pack(pady=(0, 10))
